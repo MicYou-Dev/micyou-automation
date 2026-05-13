@@ -31,8 +31,13 @@ webhook → api/github/webhooks/index.ts → handler.ts → app.ts → src/targe
 | `src/targets/issues.reopened.ts` | Reopen handling |
 | `src/targets/issue_comment.ts` | `/command` parser with transient state (`TDATA`) for multi-step workflows |
 | `src/targets/pull_request.ts` | PR workflow + GraphQL mergeability checks + review handling |
+| `src/targets/template` | Starter template for new event handlers |
 
 All targets are default-exported async functions with `Context<"event.action">` signatures, registered in [src/app.ts](src/app.ts).
+
+### Entry point detail
+
+[api/github/webhooks/index.ts](api/github/webhooks/index.ts) is a thin re-export of [src/handler.ts](src/handler.ts), which wraps the Probot app with `createNodeMiddleware()` at the webhook path `/api/github/webhooks`. Vercel requires serverless functions under `/api` — this structure satisfies that constraint.
 
 ## Critical conventions
 
@@ -61,11 +66,9 @@ await octokit.issues.addLabels(context.issue({ labels: names }));
 
 ### Non-user sender filtering
 
-Always filter out bots/actions at the top of every handler:
+Prefer the `isNotUserEvent(sender)` utility from [utils.ts](src/utils.ts) — it also logs the rejection. Some handlers still use inline `sender.type !== "User"` checks; new code should use the utility for consistency.
 
-```typescript
-if (sender.type !== "User") return;
-```
+**Exception**: [issues.opened.ts](src/targets/issues.opened.ts) intentionally skips sender filtering — the spam filter applies to all authors.
 
 ### PR mergeability requires GraphQL
 
@@ -89,6 +92,10 @@ The REST API doesn't expose `mergeStateStatus` / `reviewDecision`.
 - Uses [TDATA](src/data.ts) for transient state between commands (e.g., `/duplicate` → confirm flow)
 - Always checks `hasWritePermission()` before mutating issues
 
+#### `/duplicate` command
+
+Uses GraphQL mutations (`markIssueAsDuplicate`, `unmarkIssueAsDuplicate`, `closeIssue`, `reopenIssue`) to manage duplicate relationships — follow this pattern for new issue-mutation commands.
+
 ### TDATA caveat
 
 [data.ts](src/data.ts) is a plain `Map` — **all state is lost on Vercel cold starts**. Multi-step command flows that rely on TDATA (like `/duplicate` confirmations) will break across cold starts. Keep this in mind when adding new stateful commands.
@@ -99,11 +106,16 @@ The REST API doesn't expose `mergeStateStatus` / `reviewDecision`.
 
 [issues.opened.ts](src/targets/issues.opened.ts) auto-closes issues whose body contains unchecked YAML template checkboxes (e.g., `- [ ]` markers from bug_report.yaml or feature_request.yaml). New spam heuristics should follow this pattern.
 
+## Code style
+
+[biome.json](biome.json) enforces: tab indentation, double quotes, organize imports on save. Run `pnpm format` before committing — CI may reject unformatted code.
+
 ## Testing
 
 - Framework: **uvu** + **nock** for HTTP mocking
 - Tests use `Probot` constructor with `githubToken: "test"` (no real auth needed)
 - Current test suite is minimal — add tests in `test/` using the existing pattern
+- `test/tsconfig.json` has its own config (`module: commonjs`) for ts-node compatibility
 
 ## Deployment
 
