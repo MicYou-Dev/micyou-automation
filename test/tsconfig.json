@@ -1,4 +1,4 @@
 {
-  "extends": "..",
-  "include": ["**/*.ts"]
+	"extends": "..",
+	"include": ["**/*.ts"]
 }
