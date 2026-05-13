@@ -5,7 +5,7 @@ import nock from "nock";
 nock.disableNetConnect();
 
 import { Probot, ProbotOctokit } from "probot";
-import { EmitterWebhookEvent } from "@octokit/webhooks";
+import type { EmitterWebhookEvent } from "@octokit/webhooks";
 
 import app from "../src/app.js";
 
@@ -26,7 +26,7 @@ test.before.each(() => {
 	probot.load(app);
 });
 
-test("recieves issues.opened event", async function () {
+test("recieves issues.opened event", async () => {
 	const mock = nock("https://api.github.com")
 		// create new check run
 		.post(
@@ -54,6 +54,7 @@ test("recieves issues.opened event", async function () {
 				number: 1,
 			},
 		},
+		// biome-ignore lint/suspicious/noExplicitAny: test mock payload
 	} as EmitterWebhookEvent<any>);
 
 	assert.equal(mock.activeMocks(), []);

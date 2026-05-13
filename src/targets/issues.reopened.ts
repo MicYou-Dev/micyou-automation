@@ -1,11 +1,11 @@
-import { Context } from "probot";
+import type { Context } from "probot";
 import { Labels } from "../values.js";
 
 export default async function (context: Context<"issues.reopened">) {
 	const payload = context.payload;
 	const issue = payload.issue;
 	console.info(
-		`#${issue.number} reopened: ${issue.title} [${issue.user!.login}]`,
+		`#${issue.number} reopened: ${issue.title} [${issue.user?.login ?? "unknown"}]`,
 	);
 	// check sender type
 	const sender = payload.sender;
@@ -15,7 +15,10 @@ export default async function (context: Context<"issues.reopened">) {
 	}
 	// remove not planned & duplicate label
 	const octokit = context.octokit.rest;
-	const issueLabelIds = issue.labels?.map((l) => l!.id) || [];
+	const issueLabelIds =
+		issue.labels
+			?.map((l) => l?.id)
+			.filter((id): id is number => id !== undefined) || [];
 	const labelsToRemove = [];
 	for (const l of issueLabelIds)
 		if (Labels.isNotPlannedLabel(l) || Labels.isDuplicateLabel(l))

@@ -1,6 +1,8 @@
-# Probot & Vercel example
+# MicYou Automation
 
-This repository is an example of how to deploy the "Hello, World" of probot apps to [Vercel](https://vercel.com).
+A Probot GitHub App for [LanRhyme/MicYou](https://github.com/LanRhyme/MicYou) repository automation — issue label state machine, spam filtering, PR workflow checks, and slash commands.
+
+Deployed on [Vercel](https://vercel.com) as serverless functions.
 
 ## Local setup
 

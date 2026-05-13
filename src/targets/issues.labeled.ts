@@ -1,4 +1,4 @@
-import { Context } from "probot";
+import type { Context } from "probot";
 import { Labels } from "../values.js";
 
 export default async function (
@@ -27,7 +27,8 @@ export default async function (
 	const octokit = context.octokit.rest;
 	const issueLabelIds = issue.labels?.map((l) => l.id) || [];
 	const labelsToRemove = [];
-	const updateIssue = (data: {}) => octokit.issues.update(context.issue(data));
+	const updateIssue = (data: object) =>
+		octokit.issues.update(context.issue(data));
 	// positive -> remove negative labels; reopen the issue, or close as completed
 	if (Labels.isPositiveLabel(labelId)) {
 		for (const l of issueLabelIds)

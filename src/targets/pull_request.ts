@@ -1,4 +1,4 @@
-import { Context, ProbotOctokit } from "probot";
+import type { Context, ProbotOctokit } from "probot";
 import { Labels } from "../values.js";
 
 export const prAll = async (context: Context<"pull_request">) =>
@@ -13,11 +13,15 @@ async function pr(
 	const payload = context.payload;
 	const action = payload.action;
 	const pr = payload.pull_request;
-	console.info(`#${pr.number} ${action}: ${pr.title} [${pr.user!.login}]`);
+	console.info(
+		`#${pr.number} ${action}: ${pr.title} [${pr.user?.login ?? "unknown"}]`,
+	);
 	// check sender type
-	const sender = payload.sender!;
-	if (sender.type !== "User") {
-		console.debug(`Ignored non-user sender: ${sender.login} (${sender.type})`);
+	const sender = payload.sender;
+	if (!sender || sender.type !== "User") {
+		console.debug(
+			`Ignored non-user sender: ${sender?.login ?? "unknown"} (${sender?.type ?? "unknown"})`,
+		);
 		return;
 	}
 	// check status
@@ -26,12 +30,12 @@ async function pr(
 	let bypassSetLabels = false;
 	let labelToSetOnIssues: number | undefined;
 	if (action === "closed") {
-		if ((pr as any).merged) labelsToSet.push(Labels.done);
+		if ((pr as { merged?: boolean }).merged) labelsToSet.push(Labels.done);
 		else {
 			console.info(`Removing all labels`);
 			await octokit.issues.removeAllLabels(context.issue());
 			bypassSetLabels = true;
-			labelToSetOnIssues = Labels.waitprocess;
+			labelToSetOnIssues = Labels.processing;
 		}
 	} else if (pr.draft) {
 		labelsToSet.push(Labels.processing);
@@ -170,7 +174,7 @@ async function markReferencedIssues(context: Context, labelId: number) {
 			const labelsToRemove = labels.data.filter(
 				(l) => !Labels.isMarkupLabelOrSelf(l.id, self),
 			);
-			if (labelsToRemove.length == 0) continue;
+			if (labelsToRemove.length === 0) continue;
 			const labelNames = labelsToRemove.map((l) => l.name);
 			console.info(`Removing label(s): ${labelNames.join(", ")}`);
 			for (const l of labelNames)

@@ -7,9 +7,13 @@ import issueCommentAll from "./targets/issue_comment.js";
 import { prAll, prReview } from "./targets/pull_request.js";
 
 export default (app: Probot) => {
-	app.log.info("Hello from PCL CE Automation");
+	app.log.info("Hello from MicYou Automation");
 	app.onAny(async (context) => {
-		const payload = context.payload as any;
+		const payload = context.payload as {
+			action?: string;
+			sender?: { login: string };
+			repository?: { full_name: string };
+		};
 		console.debug(
 			`${context.name}.${payload?.action} by '${payload?.sender?.login}' on '${payload?.repository?.full_name}'`,
 		);

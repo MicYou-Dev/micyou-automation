@@ -1,8 +1,8 @@
 {
-	"name": "pclce-automation",
+	"name": "micyou-automation",
 	"version": "1.0.0",
 	"private": true,
-	"description": "GitHub App for PCL CE repository automation",
+	"description": "GitHub App for MicYou repository automation",
 	"type": "module",
 	"scripts": {
 		"start": "pnpm run build && probot run ./dist/app.js",
@@ -11,9 +11,9 @@
 		"lint": "pnpm biome lint .",
 		"format": "pnpm biome format --write ."
 	},
-	"author": "任天天 (https://github.com/ruattd)",
+	"author": "MicYou Contributors",
 	"license": "ISC",
-	"repository": "github:ruattd/pclce-automation",
+	"repository": "github:LanRhyme/micyou-automation",
 	"dependencies": {
 		"probot": "^14.0.0"
 	},

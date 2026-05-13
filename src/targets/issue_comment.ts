@@ -1,4 +1,4 @@
-import { Context, ProbotOctokit } from "probot";
+import type { Context, ProbotOctokit } from "probot";
 import { Labels } from "../values.js";
 import { TDATA } from "../data.js";
 import { hasWritePermission } from "../utils.js";
@@ -44,9 +44,9 @@ export default async function (context: Context<"issue_comment">) {
 					}
 				} else if (s.endsWith('"') && stringOpened) {
 					stringOpened = false;
-					args[args.length - 1] += " " + s.slice(0, -1);
+					args[args.length - 1] += ` ${s.slice(0, -1)}`;
 				} else if (stringOpened) {
-					args[args.length - 1] += " " + s;
+					args[args.length - 1] += ` ${s}`;
 				} else {
 					args.push(s);
 				}
@@ -60,14 +60,14 @@ export default async function (context: Context<"issue_comment">) {
 				context.issue({ body: `Pong! @${sender}` }),
 			);
 			break;
-		case "duplicate":
+		case "duplicate": {
 			// checks
 			if (!(await hasWritePermission(context, sender))) break;
 			if (args.length < 1) {
 				console.warn("Invalid argument");
 				break;
 			}
-			const dup = Number.parseInt(args[0]);
+			const dup = Number.parseInt(args[0], 10);
 			if (Number.isNaN(dup)) {
 				console.warn(`${args[0]} is not a number`);
 				break;
@@ -81,7 +81,7 @@ export default async function (context: Context<"issue_comment">) {
 			if (lastCommentId) {
 				console.debug(`Deleting last comment ${lastCommentId}`);
 				await octokit.issues.deleteComment(
-					context.issue({ comment_id: lastCommentId }),
+					context.issue({ comment_id: lastCommentId as number }),
 				);
 			}
 			console.info(`Creating duplicate comment`);
@@ -100,6 +100,7 @@ export default async function (context: Context<"issue_comment">) {
 				context.issue({ labels: await context.label(Labels.duplicate) }),
 			);
 			break;
+		}
 		default:
 			console.warn(`Unknown command: ${command}`);
 	}

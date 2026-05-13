@@ -1,4 +1,4 @@
-import { Context } from "probot";
+import type { Context } from "probot";
 import { Labels } from "../values.js";
 import { hasWritePermission, isNotUserEvent } from "../utils.js";
 
@@ -17,7 +17,7 @@ export default async function (context: Context<"issues.closed">) {
 			if (await hasWritePermission(context, sender.login)) {
 				labelToSet = Labels.done;
 			} else {
-				labelToSet = Labels.ignored;
+				labelToSet = Labels.notPlanned;
 				console.info(`Closing as not planned`);
 				await octokit.issues.update(
 					context.issue({ state: "closed", state_reason: "not_planned" }),
@@ -25,7 +25,7 @@ export default async function (context: Context<"issues.closed">) {
 			}
 			break;
 		case "not_planned":
-			labelToSet = Labels.ignored;
+			labelToSet = Labels.notPlanned;
 			break;
 		case "duplicate":
 			labelToSet = Labels.duplicate;

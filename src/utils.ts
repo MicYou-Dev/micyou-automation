@@ -1,4 +1,4 @@
-import { Context } from "probot";
+import type { Context } from "probot";
 
 export async function hasWritePermission(context: Context, username: string) {
 	const pl = await context.octokit.rest.repos.getCollaboratorPermissionLevel(

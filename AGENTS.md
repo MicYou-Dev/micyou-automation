@@ -1,6 +1,6 @@
-# AGENTS.md – PCL CE Automation
+# AGENTS.md – MicYou Automation
 
-Probot GitHub App deployed on Vercel. See [README.md](README.md) for setup and deployment.
+Probot GitHub App for [LanRhyme/MicYou](https://github.com/LanRhyme/MicYou), deployed on Vercel. See [README.md](README.md) for setup and deployment.
 
 ## Quick commands
 
@@ -8,6 +8,8 @@ Probot GitHub App deployed on Vercel. See [README.md](README.md) for setup and d
 pnpm build          # tsc → dist/
 pnpm start          # build + probot run ./dist/app.js
 pnpm test           # ts-node ./test/app.test.ts (uvu runner)
+pnpm lint           # biome lint .
+pnpm format         # biome format --write .
 ```
 
 ## Architecture
@@ -16,10 +18,21 @@ pnpm test           # ts-node ./test/app.test.ts (uvu runner)
 webhook → api/github/webhooks/index.ts → handler.ts → app.ts → src/targets/<event>.ts
 ```
 
-- `src/values.ts` — Label ID constants + category checks + `Context.prototype.label()` extension
-- `src/data.ts` — In-memory transient store (`TDATA`), lost on cold start
-- `src/utils.ts` — `hasWritePermission()`, `isNotUserEvent()`
-- `src/targets/` — One handler per event type, default-exported async functions
+### Source file map
+
+| File | Purpose |
+|---|---|
+| `src/values.ts` | Label ID constants, category helpers (`isPositiveLabel`, etc.), `Context.prototype.label()` extension |
+| `src/data.ts` | In-memory transient store (`TDATA`) — **lost on cold start** (Vercel serverless) |
+| `src/utils.ts` | `hasWritePermission()`, `isNotUserEvent()` |
+| `src/targets/issues.opened.ts` | Spam filter ("Rubbish killer") — closes issues with auto-checked template boxes |
+| `src/targets/issues.labeled.ts` | Label state machine — handles both `labeled` and `unlabeled` events |
+| `src/targets/issues.closed.ts` | Auto-label on close + permission checks |
+| `src/targets/issues.reopened.ts` | Reopen handling |
+| `src/targets/issue_comment.ts` | `/command` parser with transient state (`TDATA`) for multi-step workflows |
+| `src/targets/pull_request.ts` | PR workflow + GraphQL mergeability checks + review handling |
+
+All targets are default-exported async functions with `Context<"event.action">` signatures, registered in [src/app.ts](src/app.ts).
 
 ## Critical conventions
 
@@ -67,6 +80,24 @@ The REST API doesn't expose `mergeStateStatus` / `reviewDecision`.
 | Negative (not-planned/duplicate/needing) | Reopen (if needing)                                | Close as not-planned + strip other labels |
 | Size labels                              | —                                                  | Mutually exclusive (auto-replace)         |
 | Markup (high-quality/breaking)           | Never auto-removed                                 | Never auto-removed                        |
+
+### Command parser (`/command`)
+
+[issue_comment.ts](src/targets/issue_comment.ts) parses `/command arg1 "arg 2"` from comment first lines:
+- Only processes comments starting with `/`
+- Supports quoted multi-word arguments
+- Uses [TDATA](src/data.ts) for transient state between commands (e.g., `/duplicate` → confirm flow)
+- Always checks `hasWritePermission()` before mutating issues
+
+### TDATA caveat
+
+[data.ts](src/data.ts) is a plain `Map` — **all state is lost on Vercel cold starts**. Multi-step command flows that rely on TDATA (like `/duplicate` confirmations) will break across cold starts. Keep this in mind when adding new stateful commands.
+
+## Patterns & gotchas
+
+### Rubbish killer (spam filter)
+
+[issues.opened.ts](src/targets/issues.opened.ts) auto-closes issues whose body contains unchecked YAML template checkboxes (e.g., `- [ ]` markers from bug_report.yaml or feature_request.yaml). New spam heuristics should follow this pattern.
 
 ## Testing
 
