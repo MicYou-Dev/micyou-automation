@@ -6,11 +6,214 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="icon" href="/favicon.png" />
-  <title>MicYou Automation</title>
+  <title>MicYou Automation — Uptime</title>
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: #000;
+      color: #fff;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+
+    .card {
+      border: 1px solid #fff;
+      max-width: 480px;
+      width: 100%;
+      padding: 2.5rem 2rem;
+    }
+
+    .card h1 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      margin-bottom: 1.75rem;
+    }
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      margin-bottom: 2rem;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #fff;
+      flex-shrink: 0;
+    }
+
+    .dot.up {
+      background: #fff;
+    }
+
+    .dot.down {
+      background: #333;
+      border: 1px solid #fff;
+    }
+
+    .dot.degraded {
+      background: #000;
+      border: 2px solid #fff;
+    }
+
+    .status-text {
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+
+    .services {
+      list-style: none;
+      border-top: 1px solid #fff;
+      padding-top: 1.5rem;
+    }
+
+    .services li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem 0;
+      font-size: 0.9rem;
+    }
+
+    .services li+li {
+      border-top: 1px solid #333;
+    }
+
+    .service-name {
+      font-weight: 500;
+    }
+
+    .service-status {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .footer {
+      margin-top: 2rem;
+      border-top: 1px solid #fff;
+      padding-top: 1.25rem;
+      font-size: 0.75rem;
+      color: #999;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .refresh {
+      background: none;
+      border: 1px solid #fff;
+      padding: 0.35rem 0.85rem;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      color: #fff;
+    }
+
+    .refresh:hover {
+      background: #fff;
+      color: #000;
+    }
+
+    .loading .services {
+      opacity: 0.4;
+    }
+  </style>
 </head>
 
 <body>
-  <h1>Hello from MicYou Automation</h1>
+  <div class="card loading" id="card">
+    <h1>MicYou Automation</h1>
+
+    <div class="status-row">
+      <span class="dot" id="overall-dot"></span>
+      <span class="status-text" id="overall-text">Checking…</span>
+    </div>
+
+    <ul class="services" id="services"></ul>
+
+    <div class="footer">
+      <span id="updated">—</span>
+      <button class="refresh" id="refresh-btn">Refresh</button>
+    </div>
+  </div>
+
+  <script>
+    const STATUS_MAP = {
+      operational: { cls: "up", label: "Operational" },
+      degraded: { cls: "degraded", label: "Degraded" },
+      down: { cls: "down", label: "Down" },
+    };
+
+    const OVERALL = {
+      ok: { text: "All systems operational", dot: "up" },
+      degraded: { text: "Some systems degraded", dot: "degraded" },
+      down: { text: "Service disruption", dot: "down" },
+    };
+
+    function fmtTime() {
+      return new Date().toLocaleString("en-US", {
+        month: "short", day: "numeric",
+        hour: "2-digit", minute: "2-digit", timeZoneName: "short",
+      });
+    }
+
+    async function load() {
+      const card = document.getElementById("card");
+      const dot = document.getElementById("overall-dot");
+      const text = document.getElementById("overall-text");
+      const list = document.getElementById("services");
+      const updated = document.getElementById("updated");
+
+      try {
+        const res = await fetch("/api/health");
+        const data = await res.json();
+
+        // Overall status
+        dot.className = "dot " + OVERALL[data.status].dot;
+        text.textContent = OVERALL[data.status].text;
+
+        // Services
+        list.innerHTML = data.services
+          .map(
+            (s) =>
+              `<li><span class="service-name">${s.name}</span><span class="service-status">${STATUS_MAP[s.status].label}</span></li>`,
+          )
+          .join("");
+
+        updated.textContent = fmtTime();
+      } catch {
+        dot.className = "dot down";
+        text.textContent = "Unable to reach status API";
+        list.innerHTML = "";
+        updated.textContent = fmtTime();
+      }
+
+      card.classList.remove("loading");
+    }
+
+    document.getElementById("refresh-btn").addEventListener("click", () => {
+      document.getElementById("card").classList.add("loading");
+      load();
+    });
+
+    load();
+  </script>
 </body>
 
 </html>
