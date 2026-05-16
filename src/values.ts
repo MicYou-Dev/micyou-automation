@@ -44,6 +44,18 @@ export const Labels = {
 		Labels.isDuplicateLabel(number) ||
 		Labels.isNeedingLabel(number),
 
+	// ── Priority Labels (from bug report severity) ─────────────────
+	/** priority: low */ p_low: 10733626475,
+	/** priority: medium */ p_medium: 10733634790,
+	/** priority: high */ p_high: 10733638284,
+	/** priority: critical */ p_critical: 10733641016,
+
+	isPriorityLabel: (number: number) =>
+		number === Labels.p_low ||
+		number === Labels.p_medium ||
+		number === Labels.p_high ||
+		number === Labels.p_critical,
+
 	// ── Markup Labels (never auto-removed) ──────────────────────────
 	/** 破坏性变更 */ breaking: 10942115448,
 	/** 高质量 */ highQuality: 10942115570,

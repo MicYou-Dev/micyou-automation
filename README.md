@@ -30,11 +30,23 @@
 
 在 `issues.opened` 时，检测 issue 正文是否包含**未勾选**的 YAML 模板必选复选框（如 `- [ ] 我已经确认使用的是最新版本`）。若存在则自动以 `not_planned` 关闭并留言说明。
 
-必选复选框：
-- 我已经确认使用的是最新版本
-- 我已经搜索过已有问题，没有发现重复
-- 我已搜索现有 Issues，确认没有重复的建议
-- 我使用的是最新版本，但此功能尚未实现
+必选复选框（三语）：
+- （简中）我已经确认使用的是最新版本 / 我已经搜索过已有问题，没有发现重复 / ...
+- （繁中）我已經確認使用的是最新版本 / 我已經搜尋過已有問題，沒有發現重複
+- （英文）I confirm I am using the latest version / I have searched existing issues and found no duplicates
+
+## 严重程度自动标签
+
+当 bug issue 创建时，根据模板中「严重程度」下拉框的选择自动打优先级标签。支持三语模板：
+
+| 严重程度        | 模板选项                                                                                   | 自动标签             |
+| --------------- | ------------------------------------------------------------------------------------------ | -------------------- |
+| 阻塞 / Blocking | 阻塞 - 完全无法使用 / 阻塞 - 完全無法使用 / Blocking - Completely unusable                 | `priority: critical` |
+| 严重 / Critical | 严重 - 主要功能受损 / 嚴重 - 主要功能受損 / Critical - Major functionality broken          | `priority: high`     |
+| 一般 / Moderate | 一般 - 功能可用但有缺陷 / Moderate - Functionality works but with flaws                    | `priority: medium`   |
+| 轻微 / Minor    | 轻微 - 细微问题，不影响主要功能 / 輕微 - 細微問題，不影響主要功能 / Minor - Minor issue... | `priority: low`      |
+
+> 实现位于 `src/targets/issues.opened.ts`，映射表见 `SEVERITY_LABEL_MAP`。
 
 ## PR 工作流
 
@@ -60,26 +72,30 @@ Issue 关闭时根据 `state_reason` 自动设置标签：
 
 ## 标签参考
 
-| 名称       | ID            | 分类     |
-| ---------- | ------------- | -------- |
-| 处理中     | `10942109735` | 流程     |
-| 复核中     | `10942112055` | 流程     |
-| 等待合并   | `10942112227` | 流程     |
-| 完成       | `10942112367` | 完成     |
-| 重复       | `10175506682` | 负面     |
-| 不予修复   | `10175506712` | 不予计划 |
-| 无效       | `10175506703` | 不予计划 |
-| 暂无计划   | `10942112473` | 不予计划 |
-| 需要信息   | `10942112604` | 需求     |
-| 需要复现   | `10942115301` | 需求     |
-| 破坏性变更 | `10942115448` | 标记     |
-| 高质量     | `10942115570` | 标记     |
-| size/XS    | `10942115655` | 尺寸     |
-| size/S     | `10942115747` | 尺寸     |
-| size/M     | `10942115872` | 尺寸     |
-| size/L     | `10942117971` | 尺寸     |
-| size/XL    | `10942118132` | 尺寸     |
-| size/XXL   | `10942118246` | 尺寸     |
+| 名称               | ID            | 分类     |
+| ------------------ | ------------- | -------- |
+| 处理中             | `10942109735` | 流程     |
+| 复核中             | `10942112055` | 流程     |
+| 等待合并           | `10942112227` | 流程     |
+| 完成               | `10942112367` | 完成     |
+| 重复               | `10175506682` | 负面     |
+| 不予修复           | `10175506712` | 不予计划 |
+| 无效               | `10175506703` | 不予计划 |
+| 暂无计划           | `10942112473` | 不予计划 |
+| 需要信息           | `10942112604` | 需求     |
+| 需要复现           | `10942115301` | 需求     |
+| 破坏性变更         | `10942115448` | 标记     |
+| 高质量             | `10942115570` | 标记     |
+| size/XS            | `10942115655` | 尺寸     |
+| size/S             | `10942115747` | 尺寸     |
+| size/M             | `10942115872` | 尺寸     |
+| size/L             | `10942117971` | 尺寸     |
+| size/XL            | `10942118132` | 尺寸     |
+| size/XXL           | `10942118246` | 尺寸     |
+| priority: low      | `10733626475` | 优先级   |
+| priority: medium   | `10733634790` | 优先级   |
+| priority: high     | `10733638284` | 优先级   |
+| priority: critical | `10733641016` | 优先级   |
 
 > 刷新 ID：`gh api repos/LanRhyme/MicYou/labels?per_page=100 --jq '.[] | "\(.name): \(.id)"'`
 
@@ -97,7 +113,7 @@ webhook → api/github/webhooks/index.ts → handler.ts → app.ts → src/targe
 | `src/app.ts`                     | Probot 入口 — 注册所有事件处理器 + 调试日志                  |
 | `src/handler.ts`                 | `createNodeMiddleware` 包装，适配 Vercel serverless          |
 | `api/github/webhooks/index.ts`   | `src/handler.ts` 的薄层重导出（Vercel 要求 `/api` 目录）     |
-| `src/targets/issues.opened.ts`   | 垃圾过滤器                                                   |
+| `src/targets/issues.opened.ts`   | 垃圾过滤器 + 严重程度自动标签                                |
 | `src/targets/issues.labeled.ts`  | 标签状态机（`labeled` 和 `unlabeled`）                       |
 | `src/targets/issues.closed.ts`   | 关闭时自动标签 + 权限检查                                    |
 | `src/targets/issues.reopened.ts` | 重新打开时移除 `不予计划` 和 `重复` 标签                     |
